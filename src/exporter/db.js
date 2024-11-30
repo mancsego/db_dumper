@@ -11,9 +11,9 @@ const getConnection = (() => {
 
     const db = mysql.createConnection({
       host: env.HOST,
-      user: env.user,
-      password: env.PASSWORD,
-      database: env.DATABASE
+      user: env.DB_USER,
+      password: env.DB_PASSWORD,
+      database: env.TARGET_DB
     })
 
     const promise = db.promise()
