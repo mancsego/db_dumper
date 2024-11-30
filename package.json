@@ -26,6 +26,6 @@
     "globals": "^15.12.0"
   },
   "imports": {
-    "#src/*.js": "./*.js"
+    "#src/*.js": "./src/*.js"
   }
 }

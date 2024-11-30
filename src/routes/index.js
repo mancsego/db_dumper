@@ -1,4 +1,5 @@
 import express from 'express'
+import { getConnection } from '#src/exporter/db.js'
 const router = express.Router()
 
 router.get('/favicon.ico', (_, res) => res.status(204))
