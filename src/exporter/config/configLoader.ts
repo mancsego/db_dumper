@@ -1,6 +1,6 @@
 const loadConfiguration = async () => {
   try {
-    const { default: config } = await import('#root/definition.js')
+    const { default: config } = await import('#root/definition.local.js')
     return config
   } catch (_) {
     console.warn(
