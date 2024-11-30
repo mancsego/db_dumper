@@ -11,6 +11,8 @@
     "dev": "nodemon ./bin/www"
   },
   "dependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.1",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "dotenv": "^16.4.5",
@@ -19,7 +21,9 @@
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
     "mysql2": "^3.11.5",
-    "prettier": "^3.4.1"
+    "prettier": "^3.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
