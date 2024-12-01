@@ -1,5 +1,7 @@
 import express, { Request, Response } from 'express'
-import { getConnection } from '#src/exporter/db'
+import { Worker } from 'worker_threads'
+import path from 'path'
+
 const router = express.Router()
 
 router.get('/favicon.ico', (_: Request, res: Response) => {
@@ -7,8 +9,11 @@ router.get('/favicon.ico', (_: Request, res: Response) => {
 })
 
 router.get('/', async (_: Request, res: Response) => {
-  const { connection } = await getConnection()
-  const [data] = await connection.query('SELECT * FROM users')
+  const worker = new Worker(path.resolve('src/exporter/worker.ts'), {
+    execArgv: ['-r', 'ts-node/register']
+  })
+  worker.postMessage('Start')
+  const data = 'ok'
 
   res.json({ data })
 })
