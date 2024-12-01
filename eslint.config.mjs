@@ -1,12 +1,11 @@
 // @ts-check
-
 import globals from 'globals'
 import eslint from '@eslint/js'
-import tseslint from 'typescript-eslint'
+import tslint from 'typescript-eslint'
 
-export default tseslint.config(
+export default tslint.config(
   eslint.configs.recommended,
-  tseslint.configs.recommended,
+  tslint.configs.recommended,
   {
     languageOptions: {
       globals: { ...globals.browser, ...globals.node }
@@ -23,17 +22,3 @@ export default tseslint.config(
     }
   }
 )
-
-//  languageOptions: {
-//       globals: { ...globals.browser, ...globals.node }
-//     },
-//     rules: {
-//       'no-unused-vars': [
-//         'error',
-//         {
-//           argsIgnorePattern: '^_',
-//           varsIgnorePattern: '^_',
-//           caughtErrorsIgnorePattern: '^_'
-//         }
-//       ]
-//     }

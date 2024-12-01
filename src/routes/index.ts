@@ -1,5 +1,5 @@
 import express, { Request, Response} from 'express'
-import { getConnection } from '#src/exporter/db.js'
+import { getConnection } from '#src/exporter/db'
 const router = express.Router()
 
 router.get('/favicon.ico', (_: Request, res: Response) => {
