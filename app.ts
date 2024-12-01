@@ -1,5 +1,5 @@
 import createError from 'http-errors'
-import express, { Request, Response} from 'express'
+import express, { Request, Response } from 'express'
 
 import indexRouter from './src/routes/index'
 
@@ -15,10 +15,12 @@ app.use((req, res, next) => {
   next(createError(404))
 })
 
-app.use((error: Record<string, string|number>, req: Request, res: Response) => {
-  res.status(+error.status)
-  res.json(error)
-})
+app.use(
+  (error: Record<string, string | number>, req: Request, res: Response) => {
+    res.status(+error.status)
+    res.json(error)
+  }
+)
 
 app.listen(port, () => {
   console.log(`Example app listening on http://localhost:${port}`)

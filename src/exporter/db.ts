@@ -1,10 +1,10 @@
 import { config } from 'dotenv'
 import mysql, { Connection } from 'mysql2'
-import { Connection as PromiseConnection } from "mysql2/promise";
+import { Connection as PromiseConnection } from 'mysql2/promise'
 
 type DatabaseConnection = {
-  db: Connection;
-  connection: PromiseConnection;
+  db: Connection
+  connection: PromiseConnection
 }
 
 const { parsed: env } = config()

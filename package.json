@@ -7,7 +7,7 @@
     "lint": "eslint . ",
     "lint:fix": "eslint . --fix ",
     "build": "tsc",
-    "start": "ts-node ./app.js",
+    "start": "ts-node ./app.ts",
     "dev": "nodemon ./app.ts"
   },
   "dependencies": {
