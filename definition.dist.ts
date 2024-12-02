@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { EXPORT_TYPES } from '#src/exporter/config/types'
+import { ExportTypes } from '#src/exporter/config/types'
 
 const config = {
   /*
@@ -12,8 +12,8 @@ const config = {
   table_with_structure: {
     type: EXPORT_TYPES.STRUCTURE_ONLY
   },
-  skipped_table: {
-    type: EXPORT_TYPES.SK
+  filtered_table: {
+    type: EXPORT_TYPES.FILTER
   }
   */
 }
