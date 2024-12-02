@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express'
 import { Worker } from 'worker_threads'
 import path from 'path'
 
+let uuid: string | null = null
 const router = express.Router()
 
 router.get('/favicon.ico', (_: Request, res: Response) => {
@@ -9,13 +10,29 @@ router.get('/favicon.ico', (_: Request, res: Response) => {
 })
 
 router.get('/', async (_: Request, res: Response) => {
+  if (uuid) {
+    res.send({ data: `Task ${uuid} is still in progress.` })
+    return
+  }
+
+  startWorker()
+
+  res.json({ data: `Task ${uuid} started` })
+})
+
+const startWorker = () => {
   const worker = new Worker(path.resolve('src/exporter/worker.ts'), {
     execArgv: ['-r', 'ts-node/register']
   })
-  worker.postMessage('Start')
-  const data = 'ok'
 
-  res.json({ data })
-})
+  uuid = crypto.randomUUID()
+  console.log(`Starting worker with ${uuid}`)
+
+  worker.postMessage(uuid)
+  worker.on('message', ({ message }) => {
+    console.log(message)
+    uuid = null
+  })
+}
 
 export default router
