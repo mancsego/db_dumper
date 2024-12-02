@@ -1,10 +1,11 @@
 import { parentPort } from 'worker_threads'
 import { getConnection } from '#src/exporter/db'
 import { loadConfiguration } from '#src/exporter/config/configLoader'
-import { ColumnExport, ExportTypes, ImportDefinition } from './config/types'
+import { ColumnConfig, ExportTypes, ImportDefinition } from './config/types'
 import { RowDataPacket } from 'mysql2'
 
 const fileTemplate = 'dump.sql'
+let definition: ImportDefinition = {}
 
 parentPort?.on('message', async (uuid) => {
   try {
@@ -15,21 +16,24 @@ parentPort?.on('message', async (uuid) => {
 })
 
 const buildDump = async (uuid: string) => {
-  const tables = await loadConfiguration()
+  definition = await loadConfiguration()
 
-  const createTables = await createTableStatements(Object.keys(tables))
-  const createData = await createDataStatements(tables)
+  const createTables = await createTableStatements()
+  const createData = await createDataStatements()
 
-  console.log(createTables)
-  console.log(createData)
+  // console.log(createTables)
+  // console.log(createData)
 
   parentPort?.postMessage({
     success: true,
     message: `Task ${uuid} successfully completed. Dump file: ${fileTemplate}`
   })
+
+  definition = {}
 }
 
-const createTableStatements = async (tables: Array<string>) => {
+const createTableStatements = async () => {
+  const tables = Object.keys(definition)
   const { connection } = await getConnection()
 
   const results = await Promise.all(
@@ -48,28 +52,42 @@ const createTableStatements = async (tables: Array<string>) => {
   )
 }
 
-const createDataStatements = async (definition: ImportDefinition) => {
+const createDataStatements = async () => {
   const { connection } = await getConnection()
 
+  let statements = ''
   for (const [table, config] of Object.entries(definition)) {
     if (config.type === ExportTypes.STRUCTURE_ONLY) continue
 
     const [rows] = await connection.query<RowDataPacket[]>(
       `SELECT * FROM ${table}`
     )
-    return createInsertStatements(table, rows)
+
+    statements += createInsertStatements(table, rows)
   }
+
+  return statements
 }
 
 const createInsertStatements = (table: string, rows: RowDataPacket[]) => {
-  const values = rows
-    .reduce(
-      (collected, next) => `${collected}(${Object.values(next).join(',')}),`,
-      ''
-    )
-    .slice(0, -1)
+  return `INSERT INTO ${table} VALUES${rows.reduce(valueReducer(table), '').slice(0, -1)};\n\n`
+}
 
-  return `INSERT INTO ${table} VALUES ${values};`
+const valueReducer =
+  (table: string) => (values: string, next: Record<string, unknown>) => {
+    const row = Object.keys(next)
+      .reduce((collected: string, column: string) => {
+        const clb = getFilterMethod(table, column)
+
+        return `${collected}${clb(next[column])}, `
+      }, '')
+      .slice(0, -2)
+
+    return `${values} (${row}),`
+  }
+
+const getFilterMethod = (table: string, column: string) => {
+  return (definition[table].columns ?? {})[column] ?? ((v: unknown) => v)
 }
 
 const errorHandler = (uuid: string, { message }: Error) => {
