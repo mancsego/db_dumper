@@ -1,7 +1,0 @@
-enum EXPORT_TYPES {
-  STRUCTURE_ONLY,
-  SKIP,
-  DATA
-}
-
-export { EXPORT_TYPES }
