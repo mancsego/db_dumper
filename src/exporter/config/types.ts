@@ -6,11 +6,11 @@ enum ExportTypes {
 
 type ConfigObject = {
   type: ExportTypes
-  columns?: Record<string, CallableFunction>
+  columns?: ColumnConfig
 }
+
+type ColumnConfig = Record<string, CallableFunction>
 
 type ImportDefinition = Record<string, ConfigObject>
 
-type ColumnExport = Array<Record<string, unknown>>
-
-export { ExportTypes, ConfigObject, ImportDefinition, ColumnExport }
+export { ExportTypes, ConfigObject, ImportDefinition, ColumnConfig }
