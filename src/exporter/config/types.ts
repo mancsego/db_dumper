@@ -1,11 +1,16 @@
-enum EXPORT_TYPES {
+enum ExportTypes {
   STRUCTURE_ONLY,
-  DATA
+  DATA,
+  FILTER
 }
 
-type CONFIG_OBJECT = {
-  type: EXPORT_TYPES
+type ConfigObject = {
+  type: ExportTypes
   columns?: Record<string, CallableFunction>
 }
 
-export { EXPORT_TYPES, CONFIG_OBJECT }
+type ImportDefinition = Record<string, ConfigObject>
+
+type ColumnExport = Array<Record<string, unknown>>
+
+export { ExportTypes, ConfigObject, ImportDefinition, ColumnExport }

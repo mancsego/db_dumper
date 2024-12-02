@@ -1,7 +1,8 @@
 import { parentPort } from 'worker_threads'
 import { getConnection } from '#src/exporter/db'
 import { loadConfiguration } from '#src/exporter/config/configLoader'
-import { EXPORT_TYPES, CONFIG_OBJECT } from './config/types'
+import { ColumnExport, ExportTypes, ImportDefinition } from './config/types'
+import { RowDataPacket } from 'mysql2'
 
 const fileTemplate = 'dump.sql'
 
@@ -19,7 +20,8 @@ const buildDump = async (uuid: string) => {
   const createTables = await createTableStatements(Object.keys(tables))
   const createData = await createDataStatements(tables)
 
-  // console.log(createTables, createData)
+  console.log(createTables)
+  console.log(createData)
 
   parentPort?.postMessage({
     success: true,
@@ -32,40 +34,34 @@ const createTableStatements = async (tables: Array<string>) => {
 
   const results = await Promise.all(
     tables.map(async (table) => {
-      const [rows] = await connection.query(`SHOW CREATE TABLE \`${table}\``)
-      return rows // Adjust based on actual result structure
+      const [rows] = await connection.query<RowDataPacket[]>(
+        `SHOW CREATE TABLE ${table}`
+      )
+      return rows
     })
   )
 
   return results.reduce(
-    (collected: string, next) =>
-      `${collected}${(next as Array<Record<string, string>>)[0]['Create Table']};\n\n`,
+    (collected: string, next: RowDataPacket[]) =>
+      `${collected}${next[0]['Create Table']};`,
     ''
   )
 }
 
-const createDataStatements = async (
-  definition: Record<string, CONFIG_OBJECT>
-) => {
+const createDataStatements = async (definition: ImportDefinition) => {
   const { connection } = await getConnection()
 
   for (const [table, config] of Object.entries(definition)) {
-    if (config.type !== EXPORT_TYPES.DATA) continue
+    if (config.type === ExportTypes.STRUCTURE_ONLY) continue
 
-    const [rows] = await connection.query(`SELECT * FROM \`${table}\``)
-    const statements = createInsertStatements(
-      table,
-      rows as Array<Record<string, unknown>>
+    const [rows] = await connection.query<RowDataPacket[]>(
+      `SELECT * FROM ${table}`
     )
-    console.log(statements)
+    return createInsertStatements(table, rows)
   }
-  return 'con'
 }
 
-const createInsertStatements = (
-  table: string,
-  rows: Array<Record<string, unknown>>
-) => {
+const createInsertStatements = (table: string, rows: RowDataPacket[]) => {
   const values = rows
     .reduce(
       (collected, next) => `${collected}(${Object.values(next).join(',')}),`,
