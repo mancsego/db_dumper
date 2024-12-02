@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { EXPORT_TYPES } from '#src/exporter/config/exportTypes.js'
+import { EXPORT_TYPES } from '#src/exporter/config/exportTypes'
 
 const config = {
   /*
