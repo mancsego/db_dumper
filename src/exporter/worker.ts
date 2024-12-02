@@ -1,14 +1,21 @@
 import { parentPort } from 'worker_threads'
 
-parentPort?.on('message', async () => {
+const fileTemplate = 'dump.sql'
+
+parentPort?.on('message', async (uuid) => {
   try {
-    const uuid = crypto.randomUUID()
-    console.log(`Export task started: ${uuid}`)
-    parentPort?.postMessage({
-      success: true,
-      message: `Export complete: ${uuid}`
-    })
+    console.log('start')
+
+    setTimeout(() => {
+      parentPort?.postMessage({
+        success: true,
+        message: `Task ${uuid} successfully completed. Dump file: ${fileTemplate}`
+      })
+    }, 5000)
   } catch (error) {
-    parentPort?.postMessage({ success: false, error: (error as Error).message })
+    parentPort?.postMessage({
+      success: false,
+      message: `Task ${uuid} failed because ${(error as Error).message}`
+    })
   }
 })
