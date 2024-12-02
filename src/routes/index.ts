@@ -11,13 +11,13 @@ router.get('/favicon.ico', (_: Request, res: Response) => {
 
 router.get('/', async (_: Request, res: Response) => {
   if (uuid) {
-    res.send({ data: `Task ${uuid} is still in progress.` })
+    res.status(429).json({ data: `Task ${uuid} is still in progress.` })
     return
   }
 
   startWorker()
 
-  res.json({ data: `Task ${uuid} started` })
+  res.status(202).json({ data: `Task ${uuid} started` })
 })
 
 const startWorker = () => {
