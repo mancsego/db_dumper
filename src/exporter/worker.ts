@@ -1,7 +1,7 @@
 import { parentPort } from 'worker_threads'
 import { getConnection } from '#src/exporter/db'
 import { loadConfiguration } from '#src/exporter/config/configLoader'
-import { ColumnConfig, ExportTypes, ImportDefinition } from './config/types'
+import { ExportTypes, ImportDefinition } from './config/types'
 import { RowDataPacket } from 'mysql2'
 
 const fileTemplate = 'dump.sql'
@@ -22,7 +22,7 @@ const buildDump = async (uuid: string) => {
   const createData = await createDataStatements()
 
   // console.log(createTables)
-  // console.log(createData)
+  console.log(createData)
 
   parentPort?.postMessage({
     success: true,
@@ -77,14 +77,18 @@ const valueReducer =
   (table: string) => (values: string, next: Record<string, unknown>) => {
     const row = Object.keys(next)
       .reduce((collected: string, column: string) => {
-        const clb = getFilterMethod(table, column)
-
-        return `${collected}${clb(next[column])}, `
+        return `${collected}${getValues(next[column], getFilterMethod(table, column))}, `
       }, '')
       .slice(0, -2)
 
     return `${values} (${row}),`
   }
+
+const getValues = (v: unknown, clb: CallableFunction) => {
+  const res = clb(v)
+
+  return typeof v === 'string' ? `"${res}"` : res
+}
 
 const getFilterMethod = (table: string, column: string) => {
   return (definition[table].columns ?? {})[column] ?? ((v: unknown) => v)
