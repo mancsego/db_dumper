@@ -16,6 +16,9 @@ benchmarks/graphs
 .env
 .env.*
 
+# dumps
+dumps/*
+
 *.local*
 
 # build

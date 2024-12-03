@@ -1,8 +1,8 @@
 import { parentPort } from 'worker_threads'
+import { RowDataPacket } from 'mysql2'
 import { getConnection } from '#src/exporter/db'
 import { loadConfiguration } from '#src/exporter/config/configLoader'
-import { ExportTypes, ImportDefinition } from './config/types'
-import { RowDataPacket } from 'mysql2'
+import { ExportTypes, ImportDefinition } from '#src/exporter/config/types'
 
 const fileTemplate = 'dump.sql'
 let definition: ImportDefinition = {}
