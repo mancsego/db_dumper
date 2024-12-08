@@ -1,21 +1,25 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ExportTypes } from '#src/exporter/config/types'
+import { ExportTypes, ImportDefinition } from '#src/exporter/config/types'
 
-const config = {
+const config: ImportDefinition = [
   /*
-  table_with_structure_and_data: {
+  {
+    table: 'table_with_structure_and_data',
     type: EXPORT_TYPES.DATA,
     columns: {
         column_name: transformer
-    }
+    },
+    dependencies: []
   },
-  table_with_structure: {
+  {
+    table: 'table_with_structure'
     type: EXPORT_TYPES.STRUCTURE_ONLY
   },
-  filtered_table: {
+  {
+    table: 'filtered_table'
     type: EXPORT_TYPES.FILTER
   }
   */
-}
+]
 
 export default config
