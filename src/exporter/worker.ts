@@ -25,11 +25,17 @@ const buildDump = async (uuid: string) => {
   // console.log(createTables)
   // console.log(createData)
 
+  console.log('[Cleaning up temp files...]')
+
+  setTimeout(() => {
+    console.log('[Cleaning up done]')
+    cleanUpTmpFiles()
+  }, 2000)
+
   parentPort?.postMessage({
     success: true,
     message: `Task ${uuid} successfully completed. Dump file: ${fileTemplate}`
   })
-  cleanUpTmpFiles()
 }
 
 const errorHandler = (uuid: string, { message }: Error) => {
