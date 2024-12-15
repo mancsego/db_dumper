@@ -47,12 +47,8 @@ const openPrimaryStream = (table: string): PrimaryStream => {
 
 const cleanUpTmpFiles = (): void => {
   fs.readdir(TMP_FOLDER, (_, tmpFiles) => {
-    console.log(tmpFiles)
-
     tmpFiles.forEach((file) => {
       const filePath = path.join(TMP_FOLDER, file)
-
-      console.log(filePath)
 
       if (!file.endsWith('.tmp')) return
 
