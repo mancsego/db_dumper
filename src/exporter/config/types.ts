@@ -9,6 +9,7 @@ type ConfigObject = {
   type: ExportTypes
   columns?: ColumnConfig
   dependencies?: Array<string>
+  primary?: string
 }
 
 type ColumnConfig = Record<string, CallableFunction>
