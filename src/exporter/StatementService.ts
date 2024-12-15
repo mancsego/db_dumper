@@ -37,7 +37,7 @@ const createDataStatements = async (definition: ImportDefinition) => {
     if (config.type === ExportTypes.STRUCTURE_ONLY) continue
 
     const [rows] = await connection.query<RowDataPacket[]>(
-      `SELECT * FROM ${config.table}`
+      `SELECT * FROM ${config.table} ${_createWhere(config)}`
     )
 
     statements += _createInsertStatements(config, rows)
@@ -51,15 +51,15 @@ const _createInsertStatements = (
   rows: RowDataPacket[]
 ) => {
   const stream = openPrimaryStream(config.table)
+  const savePrimary = (next: Record<string, unknown>) => {
+    stream.save(next[config.primary ?? ''])
+  }
 
   const values = rows
-    .reduce(
-      _valueReducer(config, (primary: string) => stream.save(primary)),
-      ''
-    )
+    .reduce(_valueReducer(config, savePrimary), '')
     .slice(0, -1)
 
-  const statement = `INSERT INTO ${config.table}VALUES${values};\n\n`
+  const statement = `INSERT INTO ${config.table} VALUES${values};\n\n`
   stream.close()
 
   return statement
@@ -68,7 +68,7 @@ const _createInsertStatements = (
 const _valueReducer =
   (config: ConfigObject, clb: CallableFunction) =>
   (values: string, next: Record<string, unknown>) => {
-    clb(next[config.primary ?? ''])
+    clb(next)
 
     const row = Object.keys(next)
       .reduce((collected: string, column: string) => {
@@ -89,5 +89,14 @@ const _getFilterMethod = (
   columnConfig: Record<string, CallableFunction> | undefined,
   column: string
 ) => (columnConfig ?? {})[column] ?? ((v: unknown) => v)
+
+const _createWhere = (config: ConfigObject) => {
+  // const primaries
+  // const wherePart = config.primary
+  //   ? `WHERE ${config.primary} IN(${primaries})`
+  //   : ''
+
+  return ''
+}
 
 export { createTableStatements, createDataStatements }
