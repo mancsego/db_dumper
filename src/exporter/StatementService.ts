@@ -5,48 +5,46 @@ import {
   ConfigObject
 } from '#src/exporter/config/types'
 import { getConnection } from '#src/exporter/db'
-import { openPrimaryStream, readPrimaries } from '#src/exporter/FileService'
+import {
+  dumpStream,
+  openPrimaryStream,
+  readPrimaries
+} from '#src/exporter/FileService'
 
 const stringify = ['object', 'string']
-const shouldStringify = (x: unknown) => stringify.includes(x as string)
+const shouldStringify = (x: unknown) =>
+  x !== 'DEFAULT' && stringify.includes(typeof x)
 
 const createTableStatements = async (definition: ImportDefinition) => {
+  const dumb = dumpStream.open()
   const { connection } = await getConnection()
 
-  const results = await Promise.all(
-    definition.map(async ({ table }) => {
-      const [rows] = await connection.query<RowDataPacket[]>(
-        `SHOW CREATE TABLE ${table}`
-      )
-      return rows
-    })
-  )
+  for (const { table } of definition) {
+    const [[{ 'Create Table': createTable }]] = await connection.query<
+      RowDataPacket[]
+    >(`SHOW CREATE TABLE ${table}`)
 
-  return results.reduce(
-    (collected: string, next: RowDataPacket[]) =>
-      `${collected}${next[0]['Create Table']};`,
-    ''
-  )
+    dumb.write(createTable + ';\n')
+  }
+
+  dumpStream.close()
 }
 
 const createDataStatements = async (definition: ImportDefinition) => {
+  const dumb = dumpStream.open()
   const { connection } = await getConnection()
 
-  let statements = ''
   for (const config of definition) {
     if (config.type === ExportTypes.STRUCTURE_ONLY) continue
 
     const [rows] = await connection.query<RowDataPacket[]>(
       `SELECT * FROM ${config.table} ${await _createWhere(definition, config)}`
     )
-    console.log(
-      `SELECT * FROM ${config.table} ${await _createWhere(definition, config)}`
-    )
 
-    statements += _createInsertStatements(config, rows)
+    dumb.write(_createInsertStatements(config, rows))
   }
 
-  return statements
+  dumpStream.close()
 }
 
 const _createInsertStatements = (
@@ -62,7 +60,7 @@ const _createInsertStatements = (
     .reduce(_valueReducer(config, savePrimary), '')
     .slice(0, -1)
 
-  const statement = `INSERT INTO ${config.table} VALUES${values};\n\n`
+  const statement = `INSERT INTO ${config.table} VALUES${values};\n`
   stream.close()
 
   return statement
@@ -85,7 +83,7 @@ const _valueReducer =
 const _getValue = (v: unknown, clb: CallableFunction) => {
   const res = clb(v)
 
-  return shouldStringify(typeof v) ? `"${res}"` : res
+  return shouldStringify(res) ? `"${res}"` : res
 }
 
 const _getFilterMethod = (
