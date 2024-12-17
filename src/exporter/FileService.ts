@@ -1,6 +1,7 @@
 import fs from 'fs'
 import fsPromise from 'fs/promises'
 import path from 'path'
+import { ConfigObject } from './config/types'
 
 type PrimaryStream = {
   save: CallableFunction
@@ -29,7 +30,7 @@ const readDump = async (fileName: string) => {
 }
 
 const openPrimaryStream = (table: string): PrimaryStream => {
-  const fileName = `${TMP_FOLDER}/${table}_primaries.tmp`
+  const fileName = _createTmpFileName(table)
   fs.unlink(fileName, () => {})
   const stream = fs.createWriteStream(fileName)
 
@@ -45,6 +46,25 @@ const openPrimaryStream = (table: string): PrimaryStream => {
   }
 }
 
+const readPrimaries = (() => {
+  let cache: Record<string, string[]> = {}
+
+  return ({ dependencies }: ConfigObject): Record<string, string[]> => {
+    dependencies?.forEach((table) => {
+      if (cache[table]) return
+
+      const primaries = fs
+        .readFileSync(_createTmpFileName(table), { encoding: 'utf8' })
+        .split(',')
+        .filter(Boolean)
+
+      cache = { ...cache, [table]: primaries }
+    })
+
+    return cache
+  }
+})()
+
 const cleanUpTmpFiles = (): void => {
   fs.readdir(TMP_FOLDER, (_, tmpFiles) => {
     tmpFiles.forEach((file) => {
@@ -57,4 +77,13 @@ const cleanUpTmpFiles = (): void => {
   })
 }
 
-export { writeDumb, readDump, openPrimaryStream, cleanUpTmpFiles }
+const _createTmpFileName = (table: string): string =>
+  `${TMP_FOLDER}/${table}_primaries.tmp`
+
+export {
+  writeDumb,
+  readDump,
+  openPrimaryStream,
+  readPrimaries,
+  cleanUpTmpFiles
+}
