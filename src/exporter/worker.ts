@@ -19,11 +19,8 @@ parentPort?.on('message', async (uuid) => {
 const buildDump = async (uuid: string) => {
   const definition = await loadConfiguration()
 
-  const createTables = await createTableStatements(definition)
-  const createData = await createDataStatements(definition)
-
-  // console.log(createTables)
-  // console.log(createData)
+  await createTableStatements(definition)
+  await createDataStatements(definition)
 
   console.log('[Cleaning up temp files...]')
 
