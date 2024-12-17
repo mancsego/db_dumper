@@ -22,8 +22,8 @@ const buildDump = async (uuid: string) => {
   const createTables = await createTableStatements(definition)
   const createData = await createDataStatements(definition)
 
-  console.log(createTables)
-  console.log(createData)
+  // console.log(createTables)
+  // console.log(createData)
 
   console.log('[Cleaning up temp files...]')
 

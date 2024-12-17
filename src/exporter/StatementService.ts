@@ -5,7 +5,7 @@ import {
   ConfigObject
 } from '#src/exporter/config/types'
 import { getConnection } from '#src/exporter/db'
-import { openPrimaryStream } from '#src/exporter/FileService'
+import { openPrimaryStream, readPrimaries } from '#src/exporter/FileService'
 
 const stringify = ['object', 'string']
 const shouldStringify = (x: unknown) => stringify.includes(x as string)
@@ -37,7 +37,10 @@ const createDataStatements = async (definition: ImportDefinition) => {
     if (config.type === ExportTypes.STRUCTURE_ONLY) continue
 
     const [rows] = await connection.query<RowDataPacket[]>(
-      `SELECT * FROM ${config.table} ${_createWhere(config)}`
+      `SELECT * FROM ${config.table} ${await _createWhere(definition, config)}`
+    )
+    console.log(
+      `SELECT * FROM ${config.table} ${await _createWhere(definition, config)}`
     )
 
     statements += _createInsertStatements(config, rows)
@@ -52,7 +55,7 @@ const _createInsertStatements = (
 ) => {
   const stream = openPrimaryStream(config.table)
   const savePrimary = (next: Record<string, unknown>) => {
-    stream.save(next[config.primary ?? ''])
+    stream.save(next[config.primary])
   }
 
   const values = rows
@@ -90,13 +93,25 @@ const _getFilterMethod = (
   column: string
 ) => (columnConfig ?? {})[column] ?? ((v: unknown) => v)
 
-const _createWhere = (config: ConfigObject) => {
-  // const primaries
-  // const wherePart = config.primary
-  //   ? `WHERE ${config.primary} IN(${primaries})`
-  //   : ''
+const _createWhere = async (
+  definition: ImportDefinition,
+  config: ConfigObject
+) => {
+  if (!config.dependencies) return ''
 
-  return ''
+  const primaries = readPrimaries(config)
+
+  const where = config.dependencies.reduce((wherePart, dependency) => {
+    const keys = primaries[dependency]
+    if (!keys.length) return wherePart
+    const { primary } = definition.find(
+      ({ table }) => table === dependency
+    ) as ConfigObject
+
+    return `${wherePart} ${primary} IN (${keys}) AND`
+  }, 'WHERE')
+
+  return where.slice(0, -4)
 }
 
 export { createTableStatements, createDataStatements }
