@@ -4,12 +4,17 @@ enum ExportTypes {
   FILTER
 }
 
+type Dependency = {
+  table: string,
+  column: string,
+}
+
 type ConfigObject = {
   table: string
   type: ExportTypes
+  limit?: number,
   columns?: ColumnConfig
-  dependencies?: Array<string>
-  primary: string
+  dependencies?: Array<Dependency>
 }
 
 type ColumnConfig = Record<string, CallableFunction>
