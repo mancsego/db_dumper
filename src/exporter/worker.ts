@@ -1,7 +1,6 @@
 import { parentPort } from 'worker_threads'
 import { loadConfiguration } from '#src/exporter/config/configLoader'
 import { createDataStatements } from '#src/service/DataStatementService'
-import { cleanUpTmpFiles } from '#src/exporter/FileService'
 import { createTableStatements } from '#src/service/TableStatementService'
 
 const fileTemplate = 'dump.sql'
@@ -20,13 +19,6 @@ const buildDump = async (uuid: string) => {
 
   await createTableStatements(definition)
   await createDataStatements(definition)
-
-  console.log('[Cleaning up temp files...]')
-
-  setTimeout(() => {
-    cleanUpTmpFiles()
-    console.log('[Cleaning up done]')
-  }, 2000)
 
   parentPort?.postMessage({
     success: true,
