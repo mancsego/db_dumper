@@ -15,6 +15,7 @@
     "express": "~4.16.1",
     "fs": "^0.0.1-security",
     "http-errors": "~1.6.3",
+    "lokijs": "^1.5.12",
     "mysql2": "^3.11.5",
     "prettier": "^3.4.1"
   },
