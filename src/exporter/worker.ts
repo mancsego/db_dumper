@@ -1,10 +1,8 @@
 import { parentPort } from 'worker_threads'
 import { loadConfiguration } from '#src/exporter/config/configLoader'
-import {
-  createTableStatements,
-  createDataStatements
-} from '#src/exporter/StatementService'
+import { createDataStatements } from '#src/service/DataStatementService'
 import { cleanUpTmpFiles } from '#src/exporter/FileService'
+import { createTableStatements } from '#src/service/TableStatementService'
 
 const fileTemplate = 'dump.sql'
 

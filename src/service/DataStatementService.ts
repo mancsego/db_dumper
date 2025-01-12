@@ -15,21 +15,6 @@ const stringify = ['object', 'string']
 const shouldStringify = (x: unknown) =>
   x !== 'DEFAULT' && stringify.includes(typeof x)
 
-const createTableStatements = async (definition: ImportDefinition) => {
-  const dumb = dumpStream.open()
-  const { connection } = await getConnection()
-
-  for (const { table } of definition) {
-    const [[{ 'Create Table': createTable }]] = await connection.query<
-      RowDataPacket[]
-    >(`SHOW CREATE TABLE ${table}`)
-
-    dumb.write(createTable + ';\n')
-  }
-
-  dumpStream.close()
-}
-
 const createDataStatements = async (definition: ImportDefinition) => {
   const dumb = dumpStream.open()
   const { connection } = await getConnection()
@@ -91,4 +76,4 @@ const _createJoin = async (config: ConfigObject) => {
   )
 }
 
-export { createTableStatements, createDataStatements }
+export { createDataStatements }
