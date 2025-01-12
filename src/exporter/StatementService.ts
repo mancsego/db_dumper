@@ -5,11 +5,7 @@ import {
   ConfigObject
 } from '#src/exporter/config/types'
 import { getConnection } from '#src/exporter/db'
-import {
-  dumpStream,
-  openPrimaryStream,
-  readPrimaries
-} from '#src/exporter/FileService'
+import { dumpStream } from '#src/exporter/FileService'
 
 const stringify = ['object', 'string']
 const shouldStringify = (x: unknown) =>
@@ -38,7 +34,9 @@ const createDataStatements = async (definition: ImportDefinition) => {
     if (config.type === ExportTypes.STRUCTURE_ONLY) continue
 
     const [rows] = await connection.query<RowDataPacket[]>(
-      `SELECT * FROM ${config.table} ${await _createWhere(definition, config)}`
+      `SELECT *
+       FROM ${config.table}
+       WHERE ${await _createWhere(config)}`
     )
 
     dumb.write(_createInsertStatements(config, rows))
@@ -51,26 +49,19 @@ const _createInsertStatements = (
   config: ConfigObject,
   rows: RowDataPacket[]
 ) => {
-  const stream = openPrimaryStream(config.table)
-  const savePrimary = (next: Record<string, unknown>) => {
-    stream.save(next[config.primary])
-  }
 
   const values = rows
-    .reduce(_valueReducer(config, savePrimary), '')
+    .reduce(_valueReducer(config), '')
     .slice(0, -1)
 
-  const statement = `INSERT INTO ${config.table} VALUES${values};\n`
-  stream.close()
+  const statement = `INSERT INTO ${config.table} VALUES ${values};  `
 
   return statement
 }
 
 const _valueReducer =
-  (config: ConfigObject, clb: CallableFunction) =>
+  (config: ConfigObject) =>
   (values: string, next: Record<string, unknown>) => {
-    clb(next)
-
     const row = Object.keys(next)
       .reduce((collected: string, column: string) => {
         return `${collected}${_getValue(next[column], _getFilterMethod(config.columns, column))}, `
@@ -92,24 +83,13 @@ const _getFilterMethod = (
 ) => (columnConfig ?? {})[column] ?? ((v: unknown) => v)
 
 const _createWhere = async (
-  definition: ImportDefinition,
   config: ConfigObject
 ) => {
-  if (!config.dependencies) return ''
+  if (!config.dependencies) return '1 = 1;'
 
-  const primaries = readPrimaries(config)
+  const where = config.dependencies.reduce((wherePart) => wherePart, '1 = 1;')
 
-  const where = config.dependencies.reduce((wherePart, dependency) => {
-    const keys = primaries[dependency]
-    if (!keys.length) return wherePart
-    const { primary } = definition.find(
-      ({ table }) => table === dependency
-    ) as ConfigObject
-
-    return `${wherePart} ${primary} IN (${keys}) AND`
-  }, 'WHERE')
-
-  return where.slice(0, -4)
+  return where
 }
 
 export { createTableStatements, createDataStatements }
