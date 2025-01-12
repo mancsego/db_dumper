@@ -26,6 +26,7 @@ dist
 
 # ide
 tmp/**/*
+.idea/**/*
 
 # ignore additional files using core.excludesFile
 # https://git-scm.com/docs/gitignore
