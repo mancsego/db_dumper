@@ -12,6 +12,7 @@ parentPort?.on('message', async (uuid) => {
   try {
     await buildDump(uuid)
   } catch (e) {
+    console.log(e)
     errorHandler(uuid, e as Error)
   }
 })

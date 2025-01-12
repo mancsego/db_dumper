@@ -9,18 +9,16 @@ const config: ImportDefinition = [
     columns: {
         column_name: transformer
     },
-    dependencies: [],
-    primary: 'primaryId'
+    dependencies: [{ table: 't', column: ''],
   },
   {
     table: 'table_with_structure'
+    limit: 100,
     type: EXPORT_TYPES.STRUCTURE_ONLY,
-    primary: 'primaryId'
   },
   {
     table: 'filtered_table'
     type: EXPORT_TYPES.FILTER,
-    primary: 'primaryId'
   }
   */
 ]
