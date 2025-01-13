@@ -2,7 +2,7 @@ import { parentPort } from 'worker_threads'
 import { loadConfiguration } from '#src/exporter/config/configLoader'
 import { createDataStatements } from '#src/service/DataStatementService'
 import { createTableStatements } from '#src/service/TableStatementService'
-import { DUMP_FILE } from '#src/service/FileService'
+import { DUMP_FILE, removeDump } from '#src/service/FileService'
 
 parentPort?.on('message', async (uuid) => {
   try {
@@ -26,6 +26,7 @@ const buildDump = async (uuid: string) => {
 }
 
 const errorHandler = (uuid: string, { message }: Error) => {
+  removeDump()
   parentPort?.postMessage({
     success: false,
     message: `Task ${uuid} failed because ${message}`
