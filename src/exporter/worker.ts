@@ -2,8 +2,7 @@ import { parentPort } from 'worker_threads'
 import { loadConfiguration } from '#src/exporter/config/configLoader'
 import { createDataStatements } from '#src/service/DataStatementService'
 import { createTableStatements } from '#src/service/TableStatementService'
-
-const fileTemplate = 'dump.sql'
+import { DUMP_FILE } from '#src/service/FileService'
 
 parentPort?.on('message', async (uuid) => {
   try {
@@ -22,7 +21,7 @@ const buildDump = async (uuid: string) => {
 
   parentPort?.postMessage({
     success: true,
-    message: `Task ${uuid} successfully completed. Dump file: ${fileTemplate}`
+    message: `Task ${uuid} successfully completed. Dump file: ${DUMP_FILE}`
   })
 }
 
