@@ -1,7 +1,9 @@
 import fs, { WriteStream } from 'fs'
 import path from 'path'
 
-const DUMP_FILE = path.resolve('dumps/dump.sql')
+const DUMP_FILE = path.resolve(
+  `dumps/dump_${new Date().toLocaleDateString('de-DE').replace(/\./g, '_')}.sql`
+)
 
 const dumpStream = (() => {
   let stream: WriteStream | null
