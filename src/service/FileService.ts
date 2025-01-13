@@ -22,4 +22,8 @@ const dumpStream = (() => {
   }
 })()
 
-export { dumpStream, DUMP_FILE }
+const removeDump = () => {
+  fs.unlink(DUMP_FILE, () => {})
+}
+
+export { dumpStream, removeDump, DUMP_FILE }
