@@ -2,7 +2,7 @@ import fs, { WriteStream } from 'fs'
 import path from 'path'
 
 const DUMP_FILE = path.resolve(
-  `dumps/dump_${new Date().toLocaleDateString('de-DE').replace(/\./g, '_')}.sql`
+  `dumps/dump_${new Date().toLocaleDateString('de-DE').replace(/\./g, '_')}_${crypto.randomUUID().substring(0, 5)}.sql`
 )
 
 const dumpStream = (() => {
@@ -22,4 +22,4 @@ const dumpStream = (() => {
   }
 })()
 
-export { dumpStream }
+export { dumpStream, DUMP_FILE }
