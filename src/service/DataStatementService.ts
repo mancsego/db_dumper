@@ -5,7 +5,7 @@ import {
   ImportDefinition
 } from '#src/exporter/config/types'
 import { getConnection } from '#src/exporter/db'
-import { dumpStream } from '#src/exporter/FileService'
+import { dumpStream } from '#src/service/FileService'
 import {
   getJoinForDependency,
   saveHistory
