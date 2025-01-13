@@ -1,18 +1,18 @@
 enum ExportTypes {
   STRUCTURE_ONLY,
-  DATA,
-  FILTER
+  DATA
 }
 
 type Dependency = {
-  table: string,
-  column: string,
+  table: string
+  column: string
 }
 
 type ConfigObject = {
   table: string
   type: ExportTypes
-  limit?: number,
+  limit?: number
+  where?: Array<string>
   columns?: ColumnConfig
   dependencies?: Array<Dependency>
 }
