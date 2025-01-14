@@ -1,4 +1,3 @@
-import { config } from 'dotenv'
 import { RowDataPacket } from 'mysql2'
 import {
   ConfigObject,
@@ -95,9 +94,11 @@ const _createLimit = (config: ConfigObject) =>
 const _createWhere = (config: ConfigObject) => {
   if (!config.where) return ' '
 
-  return config.where
-    .reduce((where, condition) => `${where} ${condition} OR`, ' WHERE')
-    .slice(0, -2)
+  return config.where.reduce(
+    (where, { connector, condition }, i) =>
+      !i ? `${where}${condition} ` : `${where}${connector} ${condition} `,
+    ' WHERE '
+  )
 }
 
 export { createDataStatements }
