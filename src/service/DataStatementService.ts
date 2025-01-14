@@ -1,3 +1,4 @@
+import { config } from 'dotenv'
 import { RowDataPacket } from 'mysql2'
 import {
   ConfigObject,
@@ -11,10 +12,6 @@ import {
   saveHistory
 } from '#src/exporter/DependencyDescriptor'
 
-const stringify = ['object', 'string']
-const shouldStringify = (x: unknown) =>
-  x !== 'DEFAULT' && stringify.includes(typeof x)
-
 const createDataStatements = async (definition: ImportDefinition) => {
   const dumb = dumpStream.open()
   const { connection } = await getConnection()
@@ -22,9 +19,7 @@ const createDataStatements = async (definition: ImportDefinition) => {
   for (const config of definition) {
     if (config.type === ExportTypes.STRUCTURE_ONLY) continue
 
-    const limit = config.limit ? `LIMIT ${config.limit}` : ''
-    const query = `SELECT *
-                   FROM ${config.table} ${await _createJoin(config)} ${limit};`
+    const query = _createQuery(config)
 
     saveHistory(config.table, query)
     const [rows] = await connection.query<RowDataPacket[]>(query)
@@ -48,15 +43,24 @@ const _valueReducer =
   (config: ConfigObject) => (values: string, next: Record<string, unknown>) => {
     const row = Object.keys(next)
       .reduce((collected: string, column: string) => {
-        return `${collected}${_getValue(next[column], _getFilterMethod(config.columns, column))}, `
+        return `${collected}${_getValue(config.columns, column, next[column])}, `
       }, '')
       .slice(0, -2)
 
     return `${values} (${row}),`
   }
 
-const _getValue = (v: unknown, clb: CallableFunction) => {
-  const res = clb(v)
+const STRINGIFY = ['object', 'string']
+const shouldStringify = (x: unknown) =>
+  x !== 'DEFAULT' && STRINGIFY.includes(typeof x)
+
+const _getValue = (
+  columns: Record<string, CallableFunction> | undefined,
+  key: string,
+  value: unknown
+) => {
+  const filter = _getFilterMethod(columns, key)
+  const res = filter(value)
 
   return shouldStringify(res) ? `"${res}"` : res
 }
@@ -66,14 +70,34 @@ const _getFilterMethod = (
   column: string
 ) => (columnConfig ?? {})[column] ?? ((v: unknown) => v)
 
-const _createJoin = async (config: ConfigObject) => {
+const _createJoin = (config: ConfigObject) => {
   if (!config.dependencies) return ''
 
   return config.dependencies.reduce(
     (wherePart, { table, column }) =>
       `${wherePart} ${getJoinForDependency(config.table, table, column)}`,
-    ''
+    ' '
   )
+}
+
+const _createQuery = (config: ConfigObject) => {
+  const from = ` FROM ${config.table}`
+  const join = _createJoin(config)
+  const where = _createWhere(config)
+  const limit = _createLimit(config)
+
+  return `SELECT *${from}${join}${where}${limit};`
+}
+
+const _createLimit = (config: ConfigObject) =>
+  config.limit ? `LIMIT ${config.limit}` : ''
+
+const _createWhere = (config: ConfigObject) => {
+  if (!config.where) return ' '
+
+  return config.where
+    .reduce((where, condition) => `${where} ${condition} OR`, ' WHERE')
+    .slice(0, -2)
 }
 
 export { createDataStatements }
