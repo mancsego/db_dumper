@@ -24,6 +24,8 @@ const getConnection = (() => {
       password: env?.DB_PASSWORD,
       database: env?.TARGET_DB,
       typeCast: (field, next) => {
+        if (['VAR_STRING'].includes(field.type)) return next()
+
         if (field.type !== 'BIT')
           return _getValue(columnConfigs, field.name, next())
 
