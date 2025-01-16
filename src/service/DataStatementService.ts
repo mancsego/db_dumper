@@ -23,51 +23,24 @@ const createDataStatements = async (definition: ImportDefinition) => {
     saveHistory(config.table, query)
     const [rows] = await connection.query<RowDataPacket[]>(query)
 
-    dumb.write(_createInsertStatements(config, rows))
+    dumb.write(_createInsert(config, rows))
   }
 
   dumpStream.close()
 }
 
-const _createInsertStatements = (
-  config: ConfigObject,
-  rows: RowDataPacket[]
-) => {
-  const values = rows.reduce(_valueReducer(config), '').slice(0, -1)
+const _createInsert = (config: ConfigObject, rows: RowDataPacket[]) =>
+  `INSERT INTO ${config.table} VALUES ${rows.reduce(_valueReducer, '').slice(0, -1)};  `
 
-  return `INSERT INTO ${config.table} VALUES ${values};  `
+const _valueReducer = (values: string, next: Record<string, unknown>) => {
+  const row = Object.keys(next)
+    .reduce((collected: string, column: string) => {
+      return `${collected}${next[column]}, `
+    }, '')
+    .slice(0, -2)
+
+  return `${values} (${row}),`
 }
-
-const _valueReducer =
-  (config: ConfigObject) => (values: string, next: Record<string, unknown>) => {
-    const row = Object.keys(next)
-      .reduce((collected: string, column: string) => {
-        return `${collected}${_getValue(config.columns, column, next[column])}, `
-      }, '')
-      .slice(0, -2)
-
-    return `${values} (${row}),`
-  }
-
-const STRINGIFY = ['object', 'string']
-const shouldStringify = (x: unknown) =>
-  x !== 'DEFAULT' && STRINGIFY.includes(typeof x)
-
-const _getValue = (
-  columns: Record<string, CallableFunction> | undefined,
-  key: string,
-  value: unknown
-) => {
-  const filter = _getFilterMethod(columns, key)
-  const res = filter(value)
-
-  return shouldStringify(res) ? `"${res}"` : res
-}
-
-const _getFilterMethod = (
-  columnConfig: Record<string, CallableFunction> | undefined,
-  column: string
-) => (columnConfig ?? {})[column] ?? ((v: unknown) => v)
 
 const _createJoin = (config: ConfigObject) => {
   if (!config.dependencies) return ''

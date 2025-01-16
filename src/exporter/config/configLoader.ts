@@ -1,10 +1,15 @@
 import { ConfigObject, ImportDefinition } from './types'
 
+let sortedCache: undefined | ImportDefinition
+
 const loadConfiguration = async (): Promise<ImportDefinition> => {
+  if (sortedCache) return sortedCache
+
   try {
     const { default: config } = await import('#root/definition.local')
 
-    return _sortConfiguration(config)
+    sortedCache = _sortConfiguration(config)
+    return sortedCache
   } catch (e) {
     console.error(
       'Using default #root/definition.dist. Could not process configuration file: ',
