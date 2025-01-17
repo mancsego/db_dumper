@@ -24,7 +24,8 @@ const getConnection = (() => {
       password: env?.DB_PASSWORD,
       database: env?.TARGET_DB,
       typeCast: (field, next) => {
-        if (['VAR_STRING'].includes(field.type)) return next()
+        if (['VAR_STRING'].includes(field.type))
+          return _replaceDeprecated(next() as string)
 
         if (field.type !== 'BIT')
           return _getValue(columnConfigs, field.name, next())
@@ -72,5 +73,8 @@ const _getFilterMethod = (
 const STRINGIFY = ['object', 'string']
 const shouldStringify = (x: unknown) =>
   x !== 'DEFAULT' && x !== null && STRINGIFY.includes(typeof x)
+
+const _replaceDeprecated = (statement: string): string =>
+  statement.replace(/'0000-00-00 00:00:00'/g, 'CURRENT_TIMESTAMP')
 
 export { getConnection }
