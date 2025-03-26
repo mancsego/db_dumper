@@ -18,7 +18,7 @@ const createDataStatements = async (definition: ImportDefinition) => {
   for (const config of definition) {
     if (config.type === ExportTypes.STRUCTURE_ONLY) continue
 
-    const query = _createQuery(config)
+    const query = _createQuery(config).trim()
 
     saveHistory(config.table, query)
     const [rows] = await connection.query<RowDataPacket[]>(query)

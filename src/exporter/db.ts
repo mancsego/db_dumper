@@ -75,6 +75,6 @@ const shouldStringify = (x: unknown) =>
   x !== 'DEFAULT' && x !== null && STRINGIFY.includes(typeof x)
 
 const _replaceDeprecated = (statement: string): string =>
-  statement.replace(/'0000-00-00 00:00:00'/g, 'CURRENT_TIMESTAMP')
+  statement?.replace(/'0000-00-00 00:00:00'/g, 'CURRENT_TIMESTAMP')
 
 export { getConnection }
