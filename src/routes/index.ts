@@ -1,29 +1,48 @@
-import express, { Request, Response } from 'express'
+import { FastifyPluginAsync } from 'fastify'
 import { Worker } from 'worker_threads'
 import path from 'path'
 
 let uuid: string | null = null
-const router = express.Router()
 
-router.get('/favicon.ico', (_: Request, res: Response) => {
-  res.status(204).end()
-})
+const routes: FastifyPluginAsync = async (fastify) => {
+  fastify.get('/favicon.ico', async (_, reply) => {
+    return reply.code(204).send()
+  })
 
-router.get('/', async (_: Request, res: Response) => {
-  if (uuid) {
-    res.status(429).json({ data: `Task ${uuid} is still in progress.` })
-    return
-  }
+  fastify.get(
+    '/',
+    {
+      schema: {
+        response: {
+          202: {
+            type: 'object',
+            properties: { data: { type: 'string' } }
+          },
+          429: {
+            type: 'object',
+            properties: { data: { type: 'string' } }
+          }
+        }
+      }
+    },
+    async (_, reply) => {
+      if (uuid) {
+        return reply.code(429).send({
+          data: `Task ${uuid} is still in progress.`
+        })
+      }
 
-  startWorker()
+      startWorker()
 
-  res.status(202).json({ data: `Task ${uuid} started` })
-})
+      return reply.code(202).send({
+        data: `Task ${uuid} started`
+      })
+    }
+  )
+}
 
 const startWorker = () => {
-  const worker = new Worker(path.resolve('src/exporter/worker.ts'), {
-    execArgv: ['-r', 'ts-node/register']
-  })
+  const worker = new Worker(path.resolve('src/exporter/worker.ts'))
 
   uuid = crypto.randomUUID()
   const currentUuid = uuid
@@ -33,16 +52,12 @@ const startWorker = () => {
 
   worker.on('message', ({ message }) => {
     console.log(message)
-    if (uuid === currentUuid) {
-      uuid = null
-    }
+    if (uuid === currentUuid) uuid = null
   })
 
   worker.on('error', (err) => {
     console.error(`Worker error for task ${currentUuid}:`, err)
-    if (uuid === currentUuid) {
-      uuid = null
-    }
+    if (uuid === currentUuid) uuid = null
   })
 
   worker.on('exit', (code) => {
@@ -51,10 +66,8 @@ const startWorker = () => {
         `Worker stopped with non-zero exit code ${code} for task ${currentUuid}`
       )
     }
-    if (uuid === currentUuid) {
-      uuid = null
-    }
+    if (uuid === currentUuid) uuid = null
   })
 }
 
-export default router
+export default routes

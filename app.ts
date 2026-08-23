@@ -1,29 +1,34 @@
-import createError from 'http-errors'
-import express, { Request, Response } from 'express'
-
+import Fastify from 'fastify'
 import indexRouter from './src/routes/index'
 
-const app = express()
-const port = 3000
-
-app.use(express.json())
-app.use(express.urlencoded({ extended: false }))
-
-app.use('/', indexRouter)
-
-app.use((req, res, next) => {
-  next(createError(404))
+const server = Fastify({
+  logger: process.env.NODE_ENV !== 'production'
 })
 
-app.use(
-  (error: Record<string, string | number>, req: Request, res: Response) => {
-    res.status(+error.status)
-    res.json(error)
+server.register(indexRouter)
+
+server.setNotFoundHandler((request, reply) => {
+  reply.code(404).send({
+    statusCode: 404,
+    error: 'Not Found',
+    message: `Route ${request.method}:${request.url} not found`
+  })
+})
+
+const start = async () => {
+  const port = Number(process.env.PORT || 3000)
+  const host = process.env.SERVER_HOST || '0.0.0.0'
+
+  try {
+    await server.listen({ port, host })
+  } catch (err) {
+    server.log.error(err)
+    process.exit(1)
   }
-)
+}
 
-app.listen(port, () => {
-  console.log(`Example app listening on http://localhost:${port}`)
-})
+if (process.env.NODE_ENV !== 'test') {
+  start()
+}
 
-export default app
+export default server

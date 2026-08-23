@@ -10,7 +10,7 @@
 
 ```mermaid
 flowchart TD
-    Client["Client / HTTP Request (GET /)"] --> App["Express Server (app.ts)"]
+    Client["Client / HTTP Request (GET /)"] --> App["Fastify Server (app.ts)"]
     App --> Route["Route Handler (src/routes/index.ts)"]
     Route --> Worker["Worker Thread (src/exporter/worker.ts)"]
     Worker --> ConfigLoader["Config Loader (configLoader.ts)"]
@@ -27,7 +27,7 @@ flowchart TD
 ```
 
 ### 1. HTTP Server & Worker Dispatch (`app.ts`, `src/routes/index.ts`)
-- An Express server listens on port 3000 (default).
+- A Fastify server listens on port 3000 (default). Configurable via `PORT` env var; host defaults to `0.0.0.0` (configurable via `SERVER_HOST`).
 - Endpoint `GET /` starts a background task running in a Node.js `Worker` thread (`src/exporter/worker.ts`).
 - Prevents concurrent export tasks: if a task UUID is active, it returns HTTP `429 Too Many Requests`. Otherwise, it returns HTTP `202 Accepted` with the task UUID.
 - `GET /favicon.ico` returns HTTP `204 No Content`.
@@ -73,7 +73,7 @@ db_dumper/
 ├── .initdb/                    # Initial database SQL schema/seed for Docker testing
 │   └── test.sql
 ├── .prettierrc                 # Prettier configuration (singleQuote, trailingComma: none, no semi)
-├── app.ts                      # Express server entry point
+├── app.ts                      # Fastify server entry point
 ├── bun.lockb                   # Bun lockfile
 ├── definition.dist.ts          # Default/example export configuration template
 ├── docker-compose.yml          # Local MySQL test container configuration
@@ -90,7 +90,7 @@ db_dumper/
 │   │       ├── configLoader.ts # Configuration importer and topological dependency sorter
 │   │       └── types.ts        # TypeScript types (ExportTypes, ConfigObject, etc.)
 │   ├── routes/
-│   │   └── index.ts            # Express router: GET / initiates export worker
+│   │   └── index.ts            # Fastify plugin: GET / initiates export worker
 │   ├── service/
 │   │   ├── DataStatementService.ts  # SELECT query builder, runner, and INSERT statement writer
 │   │   ├── FileService.ts           # Dump file stream creation, management, and cleanup
@@ -173,7 +173,7 @@ export default config
 ### 4. Running the Application
 - **Development (with hot reloading)**:
   ```bash
-  npm run dev
+  bun run dev
   ```
 - **Production / Direct Start**:
   ```bash

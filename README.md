@@ -49,6 +49,8 @@ HOST=127.0.0.1
 DB_USER=root
 DB_PASSWORD=root
 TARGET_DB=db
+PORT=3000
+SERVER_HOST=0.0.0.0
 ```
 
 ### 3. (Optional) Run Test Database with Docker
@@ -124,7 +126,7 @@ export default config
 
 ### Development Mode
 
-Run the server with live reload using nodemon:
+Run the server with live reload using `bun --watch`:
 
 ```bash
 npm run dev
@@ -200,8 +202,8 @@ You can also pass custom functions: `(val: unknown) => transformedValue`.
 
 | Script | Description |
 | :--- | :--- |
-| `npm run dev` | Starts server in watch mode using `nodemon` and `ts-node`. |
-| `npm start` | Runs server directly with `ts-node ./app.ts`. |
+| `npm run dev` | Starts server in watch mode using `bun --watch`. |
+| `npm start` | Runs server directly with `bun run ./app.ts`. |
 | `npm run build` | Compiles TypeScript files using `tsc`. |
 | `npm run lint` | Runs ESLint. |
 | `npm run lint:fix` | Runs ESLint and automatically fixes formatting/lint issues. |
