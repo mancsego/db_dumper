@@ -5,20 +5,16 @@ const config: ImportDefinition = [
   /*
   {
     table: 'table_with_structure_and_data',
-    type: EXPORT_TYPES.DATA,
+    type: ExportTypes.DATA,
     columns: {
-        column_name: transformer
+      column_name: (val) => val
     },
-    dependencies: [{ table: 't', column: ''],
+    dependencies: [{ table: 'parent_table', column: 'parent_id' }]
   },
   {
-    table: 'table_with_structure'
+    table: 'table_with_structure',
     limit: 100,
-    type: EXPORT_TYPES.STRUCTURE_ONLY,
-  },
-  {
-    table: 'filtered_table'
-    type: EXPORT_TYPES.FILTER,
+    type: ExportTypes.STRUCTURE_ONLY
   }
   */
 ]
