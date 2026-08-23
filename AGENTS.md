@@ -40,7 +40,7 @@ flowchart TD
   - `ExportTypes`: `STRUCTURE_ONLY` (`0`), `DATA` (`1`).
   - `Connector`: `'AND'`, `'OR'`, `'IN'`.
   - `Where`: `{ condition: string, connector: Connector }`.
-  - `Dependency`: `{ table: string, column: string }`.
+  - `Dependency`: `{ table: string, column?: string, parentColumn?: string, foreignColumn?: string }`.
   - `ConfigObject`: Configuration for an individual table.
   - `ImportDefinition`: Array of `ConfigObject`.
 

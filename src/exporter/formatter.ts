@@ -6,17 +6,46 @@ const createTypeCaster = async () => {
   const tableConfigs = await _collectConfigPerTable()
 
   return (field: TypeCastField, next: () => unknown) => {
-    const value = next() as string
+    const rawValue = next()
+    const tableName = field.orgTable || field.table
+    const columnName = field.name
 
-    if (field.type === 'BIT') return field.buffer()?.readUInt8(0) ?? 0
+    const columnTransformer = tableConfigs[tableName]?.[columnName]
+
+    if (columnTransformer) {
+      const transformed = columnTransformer(rawValue)
+      return _formatValue(transformed)
+    }
+
+    if (field.type === 'BIT') {
+      return field.buffer()?.readUInt8(0) ?? 0
+    }
+
+    if (rawValue === null || rawValue === undefined) {
+      return 'NULL'
+    }
 
     switch (field.type) {
       case 'VAR_STRING':
-        return _formatVarString(value)
+      case 'STRING':
+        return _formatVarString(String(rawValue))
       case 'TIMESTAMP':
-        return _formatTimestamp(value)
+      case 'DATETIME':
+      case 'DATE':
+      case 'NEWDATE':
+        return _formatTimestamp(rawValue)
+      case 'TINY':
+      case 'SHORT':
+      case 'LONG':
+      case 'LONGLONG':
+      case 'INT24':
+      case 'FLOAT':
+      case 'DOUBLE':
+      case 'DECIMAL':
+      case 'NEWDECIMAL':
+        return typeof rawValue === 'number' ? rawValue : Number(rawValue)
       default:
-        return _getValue(tableConfigs, field.name, value)
+        return _formatValue(rawValue)
     }
   }
 }
@@ -28,45 +57,50 @@ const _collectConfigPerTable = async (): Promise<
   return def.reduce(
     (cur, { table, columns }) => ({
       ...cur,
-      [table]: columns
+      [table]: columns ?? {}
     }),
     {}
   )
 }
 
-const _getValue = (
-  config: Record<string, ColumnConfig>,
-  table: string,
-  value: unknown
-) => {
-  const filter = _getFilterMethod(config[table], table)
-  const res = filter(value)
+const _formatValue = (value: unknown): unknown => {
+  if (value === 'DEFAULT') return 'DEFAULT'
+  if (value === null || value === undefined) return 'NULL'
+  if (typeof value === 'number') return isNaN(value) ? 'NULL' : value
+  if (typeof value === 'boolean') return value ? 1 : 0
+  if (value instanceof Date) return _formatTimestamp(value)
 
-  return _shouldStringify(res) ? `"${res}"` : res
+  return _escapeSqlString(String(value))
 }
 
-const _getFilterMethod = (
-  columnConfig: Record<string, CallableFunction> | undefined,
-  column: string
-) => (columnConfig ?? {})[column] ?? ((v: unknown) => v)
+const _escapeSqlString = (val: string): string => {
+  const escaped = val
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\0/g, '\\0')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\x1a/g, '\\Z')
 
-const _shouldStringify = (x: unknown) =>
-  x !== 'DEFAULT' && x !== null && ['object', 'string'].includes(typeof x)
+  return `'${escaped}'`
+}
 
 const _formatVarString = (statement: string): string => {
-  const value =
-    statement?.replace(/'0000-00-00 00:00:00'/g, 'CURRENT_TIMESTAMP') ?? ''
+  if (!statement) return "''"
+  if (statement === '0000-00-00 00:00:00') return 'CURRENT_TIMESTAMP'
+  if (statement.includes('CREATE TABLE')) return statement
 
-  return value.includes('CREATE TABLE') ? value : `'${value}'`
+  return _escapeSqlString(statement)
 }
 
-const _formatTimestamp = (date: string) => {
-  if (!date) return null
+const _formatTimestamp = (date: unknown): string => {
+  if (!date) return 'NULL'
 
-  const d = new Date(date)
-  if (isNaN(d.getTime())) return null
+  const d = date instanceof Date ? date : new Date(String(date))
+  if (isNaN(d.getTime())) return 'NULL'
 
-  return `'${d.toISOString().slice(0, 19).replace('T', ' ')}'`
+  const iso = d.toISOString().slice(0, 19).replace('T', ' ')
+  return `'${iso}'`
 }
 
 export default createTypeCaster

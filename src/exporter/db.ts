@@ -10,26 +10,36 @@ type DatabaseConnection = {
 
 const { parsed: env } = config()
 
-const getConnection = (() => {
-  let cache: DatabaseConnection
+let cache: DatabaseConnection | null = null
 
-  return async (): Promise<DatabaseConnection> => {
-    if (cache) return cache
+const getConnection = async (): Promise<DatabaseConnection> => {
+  if (cache) return cache
 
-    const typeCaster = await createTypeCaster()
-    const db = mysql.createConnection({
-      host: env?.HOST,
-      user: env?.DB_USER,
-      password: env?.DB_PASSWORD,
-      database: env?.TARGET_DB,
-      typeCast: typeCaster
-    })
+  const typeCaster = await createTypeCaster()
+  const db = mysql.createConnection({
+    host: process.env.HOST ?? env?.HOST ?? '127.0.0.1',
+    user: process.env.DB_USER ?? env?.DB_USER ?? 'root',
+    password: process.env.DB_PASSWORD ?? env?.DB_PASSWORD ?? 'root',
+    database: process.env.TARGET_DB ?? env?.TARGET_DB ?? 'db',
+    typeCast: typeCaster
+  })
 
-    const connection = db.promise()
+  const connection = db.promise()
 
-    cache = { db, connection }
-    return cache
+  cache = { db, connection }
+  return cache
+}
+
+const closeConnection = async (): Promise<void> => {
+  if (cache) {
+    try {
+      await cache.connection.end()
+    } catch {
+      cache.db.destroy()
+    } finally {
+      cache = null
+    }
   }
-})()
+}
 
-export { getConnection }
+export { getConnection, closeConnection }

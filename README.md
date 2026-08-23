@@ -179,7 +179,7 @@ If an error occurs during the export process, the partial dump file is automatic
 | `limit` | `number` (optional) | Limits the number of exported rows. |
 | `where` | `Array<{ condition: string, connector: Connector }>` (optional) | WHERE clause conditions (`AND`, `OR`, `IN`). |
 | `columns` | `Record<string, (val: any) => any>` (optional) | Map of column names to transformation functions. |
-| `dependencies` | `Array<{ table: string, column: string }>` (optional) | Parent table dependencies for automatic relational inner join filtering. |
+| `dependencies` | `Array<{ table: string, column?: string, parentColumn?: string, foreignColumn?: string }>` (optional) | Parent table dependencies for relational inner join filtering. Use `column` if foreign and parent column names are the same, or specify `parentColumn` and `foreignColumn` separately for asymmetric keys. |
 
 ---
 

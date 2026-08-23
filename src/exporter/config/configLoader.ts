@@ -1,37 +1,55 @@
 import { ConfigObject, ImportDefinition } from './types'
 
-let sortedCache: undefined | ImportDefinition
-
 const loadConfiguration = async (): Promise<ImportDefinition> => {
-  if (sortedCache) return sortedCache
-
   try {
     const { default: config } = await import('#root/definition.local')
-
-    sortedCache = _sortConfiguration(config)
-    return sortedCache
+    return _sortConfiguration(config)
   } catch (e) {
     console.error(
-      'Using default #root/definition.dist. Could not process configuration file: ',
+      'Using default #root/definition.dist. Could not process definition.local configuration: ',
       e
     )
 
     const { default: config } = await import('#root/definition.dist')
-    return config
+    return _sortConfiguration(config)
   }
 }
 
-const _sortConfiguration = (config: ImportDefinition) => {
+const _sortConfiguration = (config: ImportDefinition): ImportDefinition => {
+  const tableNames = new Set(config.map((c) => c.table))
+
+  config.forEach(({ table, dependencies }) => {
+    dependencies?.forEach(({ table: depTable }) => {
+      if (!tableNames.has(depTable)) {
+        throw new Error(
+          `Table '${table}' depends on '${depTable}', but '${depTable}' is not defined in the export configuration.`
+        )
+      }
+    })
+  })
+
   const { unresolvedCount, dependents } = _createDependencyGraphs(config)
   const sortedConfig: ImportDefinition = []
   const reCalculate = _reCalculateUnresolved(unresolvedCount)
 
-  while (unresolvedCount.size) {
-    unresolvedCount.forEach((count, table) => {
-      if (count !== 0) return
+  while (unresolvedCount.size > 0) {
+    const readyToResolve: string[] = []
 
+    unresolvedCount.forEach((count, table) => {
+      if (count === 0) {
+        readyToResolve.push(table)
+      }
+    })
+
+    if (readyToResolve.length === 0) {
+      const remaining = Array.from(unresolvedCount.keys()).join(', ')
+      throw new Error(`Cyclic dependency detected among tables: ${remaining}`)
+    }
+
+    readyToResolve.forEach((table) => {
       dependents.get(table)?.forEach(reCalculate)
-      sortedConfig.push(config.find((e) => e.table === table) as ConfigObject)
+      const found = config.find((e) => e.table === table)
+      if (found) sortedConfig.push(found)
       unresolvedCount.delete(table)
     })
   }
