@@ -5,27 +5,27 @@ import { loadConfiguration } from './config/configLoader'
 const createTypeCaster = async () => {
   const tableConfigs = await _collectConfigPerTable()
 
-  return (field: TypeCastField, next: () => unknown) => {
+  return (
+    { table, name, type, buffer }: TypeCastField,
+    next: () => unknown
+  ) => {
     const rawValue = next()
-    const tableName = field.orgTable || field.table
-    const columnName = field.name
-
-    const columnTransformer = tableConfigs[tableName]?.[columnName]
+    const columnTransformer = tableConfigs[table]?.[name]
 
     if (columnTransformer) {
       const transformed = columnTransformer(rawValue)
       return _formatValue(transformed)
     }
 
-    if (field.type === 'BIT') {
-      return field.buffer()?.readUInt8(0) ?? 0
+    if (type === 'BIT') {
+      return buffer()?.readUInt8(0) ?? 0
     }
 
     if (rawValue === null || rawValue === undefined) {
       return 'NULL'
     }
 
-    switch (field.type) {
+    switch (type) {
       case 'VAR_STRING':
       case 'STRING':
         return _formatVarString(String(rawValue))
@@ -80,6 +80,7 @@ const _escapeSqlString = (val: string): string => {
     .replace(/\0/g, '\\0')
     .replace(/\n/g, '\\n')
     .replace(/\r/g, '\\r')
+    // eslint-disable-next-line no-control-regex
     .replace(/\x1a/g, '\\Z')
 
   return `'${escaped}'`

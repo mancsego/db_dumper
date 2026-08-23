@@ -1,8 +1,11 @@
-import { ConfigObject, ImportDefinition } from './types'
+import { ImportDefinition } from './types'
 
 const loadConfiguration = async (): Promise<ImportDefinition> => {
   try {
-    const { default: config } = await import('#root/definition.local')
+    // @ts-expect-error: definition.local.ts might not exist
+    const { default: config } = (await import('#root/definition.local')) as {
+      default: ImportDefinition
+    }
     return _sortConfiguration(config)
   } catch (e) {
     console.error(
