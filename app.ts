@@ -2,7 +2,8 @@ import Fastify from 'fastify'
 import indexRouter from './src/routes/index'
 
 const server = Fastify({
-  logger: process.env.NODE_ENV !== 'production'
+  logger: process.env.NODE_ENV !== 'production',
+  disableRequestLogging: true
 })
 
 server.register(indexRouter)

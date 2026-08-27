@@ -1,56 +1,23 @@
-import { TypeCastField } from 'mysql2'
 import { ColumnConfig } from './config/types'
 import { loadConfiguration } from './config/configLoader'
 
-const createTypeCaster = async () => {
-  const tableConfigs = await _collectConfigPerTable()
-
-  return (
-    { table, name, type, buffer }: TypeCastField,
-    next: () => unknown
-  ) => {
-    const rawValue = next()
-    const columnTransformer = tableConfigs[table]?.[name]
-
-    if (columnTransformer) {
-      const transformed = columnTransformer(rawValue)
-      return _formatValue(transformed)
-    }
-
-    if (type === 'BIT') {
-      return buffer()?.readUInt8(0) ?? 0
-    }
-
-    if (rawValue === null || rawValue === undefined) {
-      return 'NULL'
-    }
-
-    switch (type) {
-      case 'VAR_STRING':
-      case 'STRING':
-        return _formatVarString(String(rawValue))
-      case 'TIMESTAMP':
-      case 'DATETIME':
-      case 'DATE':
-      case 'NEWDATE':
-        return _formatTimestamp(rawValue)
-      case 'TINY':
-      case 'SHORT':
-      case 'LONG':
-      case 'LONGLONG':
-      case 'INT24':
-      case 'FLOAT':
-      case 'DOUBLE':
-      case 'DECIMAL':
-      case 'NEWDECIMAL':
-        return typeof rawValue === 'number' ? rawValue : Number(rawValue)
-      default:
-        return _formatValue(rawValue)
-    }
-  }
+/**
+ * Applies a column transformer function to a raw value and formats the result
+ * as a SQL literal string.
+ */
+const applyTransformer = (
+  transformer: CallableFunction,
+  rawValue: unknown
+): unknown => {
+  const transformed = transformer(rawValue)
+  return formatValue(transformed)
 }
 
-const _collectConfigPerTable = async (): Promise<
+/**
+ * Collects column transformer configurations grouped by table name.
+ * Used by dialect implementations to resolve transformers during row formatting.
+ */
+const collectConfigPerTable = async (): Promise<
   Record<string, ColumnConfig>
 > => {
   const def = await loadConfiguration()
@@ -63,12 +30,16 @@ const _collectConfigPerTable = async (): Promise<
   )
 }
 
-const _formatValue = (value: unknown): unknown => {
+/**
+ * Formats any raw value into a SQL literal string.
+ * Returns 'DEFAULT', 'NULL', a number, or a single-quoted escaped string.
+ */
+const formatValue = (value: unknown): unknown => {
   if (value === 'DEFAULT') return 'DEFAULT'
   if (value === null || value === undefined) return 'NULL'
   if (typeof value === 'number') return isNaN(value) ? 'NULL' : value
   if (typeof value === 'boolean') return value ? 1 : 0
-  if (value instanceof Date) return _formatTimestamp(value)
+  if (value instanceof Date) return formatTimestamp(value)
 
   return _escapeSqlString(String(value))
 }
@@ -94,7 +65,10 @@ const _formatVarString = (statement: string): string => {
   return _escapeSqlString(statement)
 }
 
-const _formatTimestamp = (date: unknown): string => {
+/**
+ * Formats a Date (or date-like) value into an ISO SQL timestamp string.
+ */
+const formatTimestamp = (date: unknown): string => {
   if (!date) return 'NULL'
 
   const d = date instanceof Date ? date : new Date(String(date))
@@ -104,4 +78,10 @@ const _formatTimestamp = (date: unknown): string => {
   return `'${iso}'`
 }
 
-export default createTypeCaster
+export {
+  applyTransformer,
+  collectConfigPerTable,
+  formatValue,
+  formatTimestamp,
+  _formatVarString
+}

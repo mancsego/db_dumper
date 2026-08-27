@@ -1,4 +1,5 @@
 import loki from 'lokijs'
+import { IDialect } from '#src/dialect/IDialect'
 
 const db = new loki('query_storage.db')
 const history = db.addCollection('history')
@@ -12,6 +13,7 @@ const saveHistory = (table: string, query: string): void => {
 }
 
 const getJoinForDependency = (
+  dialect: IDialect,
   agentTable: string,
   parentTable: string,
   parentColumn: string,
@@ -20,12 +22,20 @@ const getJoinForDependency = (
   const entry = history.findOne({ table: parentTable })
   if (!entry) return ''
 
-  const subSelect = entry.query
-    .replace(/SELECT\s+\*/i, `SELECT DISTINCT \`${parentTable}\`.\`${parentColumn}\``)
-    .replace(/;+\s*$/, '')
-  const subTable = `sub_${parentTable}`
+  const q = dialect.quoteIdentifier(parentTable)
+  const qCol = dialect.quoteIdentifier(parentColumn)
 
-  return `INNER JOIN (${subSelect}) AS \`${subTable}\` ON \`${subTable}\`.\`${parentColumn}\` = \`${agentTable}\`.\`${foreignColumn}\``
+  const subSelect = entry.query
+    .replace(/SELECT\s+\*/i, `SELECT DISTINCT ${q}.${qCol}`)
+    .replace(/;+\s*$/, '')
+
+  return dialect.buildJoinSubquery(
+    parentTable,
+    parentColumn,
+    agentTable,
+    foreignColumn,
+    subSelect
+  )
 }
 
 export { clearHistory, saveHistory, getJoinForDependency }

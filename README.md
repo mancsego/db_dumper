@@ -1,11 +1,12 @@
 # DB Dumper
 
-A configurable, high-performance Node.js & TypeScript service to extract, sanitize, and export MySQL database dumps with selective schema dumping, relational dependency resolution, and column-level data transformation.
+A configurable, high-performance Node.js & TypeScript service to extract, sanitize, and export MySQL and PostgreSQL database dumps with selective schema dumping, relational dependency resolution, and column-level data transformation.
 
 ---
 
 ## Features
 
+- **Multi-Database Support**: Export from either **MySQL** or **PostgreSQL** via an extensible dialect abstraction layer.
 - **Selective Exporting**: Choose whether to dump table structure only (`ExportTypes.STRUCTURE_ONLY`) or full table data (`ExportTypes.DATA`).
 - **Relational Dependency Resolution**: Automatically filters child/dependent tables using subquery joins based on parent table queries (`WHERE` / `LIMIT` conditions).
 - **Topological Sorting**: Resolves table dependencies automatically so parent tables are dumped before dependent tables.
@@ -18,7 +19,7 @@ A configurable, high-performance Node.js & TypeScript service to extract, saniti
 ## Prerequisites
 
 - **Node.js**: v18+ (or [Bun](https://bun.sh/))
-- **Docker & Docker Compose** (optional, for local MySQL testing)
+- **Docker & Docker Compose** (optional, for local MySQL & PostgreSQL testing)
 
 ---
 
@@ -49,16 +50,25 @@ HOST=127.0.0.1
 DB_USER=root
 DB_PASSWORD=root
 TARGET_DB=db
+DB_DIALECT=mysql
 PORT=3000
 SERVER_HOST=0.0.0.0
+
+# For PostgreSQL:
+# DB_DIALECT=postgres
+# DB_PORT=5432
 ```
 
 ### 3. (Optional) Run Test Database with Docker
 
-A test MySQL container with sample schema and seed data is included in `docker-compose.yml` and `.initdb/test.sql`:
+MySQL and PostgreSQL containers with sample schemas and seed data are included in `docker-compose.yml`, `.initdb/test.sql`, and `.initdb/postgres_test.sql`:
 
 ```bash
-docker compose up -d
+# Start MySQL test container
+docker compose up -d db
+
+# Or start PostgreSQL test container
+docker compose up -d postgres
 ```
 
 ### 4. Create Export Definition
@@ -66,7 +76,11 @@ docker compose up -d
 Create a `definition.local.ts` file in the project root to define which tables to export and how columns should be transformed.
 
 ```typescript
-import { ExportTypes, ImportDefinition, Connector } from '#src/exporter/config/types'
+import {
+  ExportTypes,
+  ImportDefinition,
+  Connector
+} from '#src/exporter/config/types'
 import { setToDefault, setToNull } from '#src/transformer/generalTransformer'
 import { maskText } from '#src/transformer/textTransformers'
 
@@ -109,9 +123,7 @@ const config: ImportDefinition = [
       createdAt: setToDefault,
       updatedAt: setToDefault
     },
-    dependencies: [
-      { table: 'users', column: 'userId' }
-    ]
+    dependencies: [{ table: 'users', column: 'userId' }]
   }
 ]
 
@@ -148,6 +160,7 @@ curl http://localhost:3000/
 ```
 
 #### API Responses:
+
 - **`202 Accepted`**: Dump process started in background worker thread. Returns `{ "data": "Task <uuid> started" }`.
 - **`429 Too Many Requests`**: A dump task is already in progress. Returns `{ "data": "Task <uuid> is still in progress." }`.
 
@@ -168,19 +181,21 @@ If an error occurs during the export process, the partial dump file is automatic
 ## Configuration Reference
 
 ### `ExportTypes`
-| Value | Description |
-| :--- | :--- |
-| `ExportTypes.DATA` (`1`) | Dumps `SHOW CREATE TABLE` DDL and `INSERT INTO` table data rows. |
+
+| Value                              | Description                                                         |
+| :--------------------------------- | :------------------------------------------------------------------ |
+| `ExportTypes.DATA` (`1`)           | Dumps `SHOW CREATE TABLE` DDL and `INSERT INTO` table data rows.    |
 | `ExportTypes.STRUCTURE_ONLY` (`0`) | Dumps only the `SHOW CREATE TABLE` DDL statement without data rows. |
 
 ### Table Configuration Options (`ConfigObject`)
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `table` | `string` | Database table name. |
-| `type` | `ExportTypes` | `ExportTypes.DATA` or `ExportTypes.STRUCTURE_ONLY`. |
-| `limit` | `number` (optional) | Limits the number of exported rows. |
-| `where` | `Array<{ condition: string, connector: Connector }>` (optional) | WHERE clause conditions (`AND`, `OR`, `IN`). |
-| `columns` | `Record<string, (val: any) => any>` (optional) | Map of column names to transformation functions. |
+
+| Property       | Type                                                                                                  | Description                                                                                                                                                                                                |
+| :------------- | :---------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `table`        | `string`                                                                                              | Database table name.                                                                                                                                                                                       |
+| `type`         | `ExportTypes`                                                                                         | `ExportTypes.DATA` or `ExportTypes.STRUCTURE_ONLY`.                                                                                                                                                        |
+| `limit`        | `number` (optional)                                                                                   | Limits the number of exported rows.                                                                                                                                                                        |
+| `where`        | `Array<{ condition: string, connector: Connector }>` (optional)                                       | WHERE clause conditions (`AND`, `OR`, `IN`).                                                                                                                                                               |
+| `columns`      | `Record<string, (val: any) => any>` (optional)                                                        | Map of column names to transformation functions.                                                                                                                                                           |
 | `dependencies` | `Array<{ table: string, column?: string, parentColumn?: string, foreignColumn?: string }>` (optional) | Parent table dependencies for relational inner join filtering. Use `column` if foreign and parent column names are the same, or specify `parentColumn` and `foreignColumn` separately for asymmetric keys. |
 
 ---
@@ -200,14 +215,14 @@ You can also pass custom functions: `(val: unknown) => transformedValue`.
 
 ## Available Scripts
 
-| Script | Description |
-| :--- | :--- |
-| `npm run dev` | Starts server in watch mode using `bun --watch`. |
-| `npm start` | Runs server directly with `bun run ./app.ts`. |
-| `npm run build` | Compiles TypeScript files using `tsc`. |
-| `npm run lint` | Runs ESLint. |
+| Script             | Description                                                 |
+| :----------------- | :---------------------------------------------------------- |
+| `npm run dev`      | Starts server in watch mode using `bun --watch`.            |
+| `npm start`        | Runs server directly with `bun run ./app.ts`.               |
+| `npm run build`    | Compiles TypeScript files using `tsc`.                      |
+| `npm run lint`     | Runs ESLint.                                                |
 | `npm run lint:fix` | Runs ESLint and automatically fixes formatting/lint issues. |
-| `npm run format` | Formats codebase using Prettier. |
+| `npm run format`   | Formats codebase using Prettier.                            |
 
 ---
 
