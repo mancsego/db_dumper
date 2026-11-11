@@ -2,13 +2,9 @@ import { parentPort } from 'worker_threads'
 import { loadConfiguration } from '#src/exporter/config/configLoader'
 import { createDataStatements } from '#src/service/DataStatementService'
 import { createTableStatements } from '#src/service/TableStatementService'
-import {
-  initDumpFile,
-  dumpStream,
-  removeDump
-} from '#src/service/FileService'
+import { initDumpFile, dumpStream, removeDump } from '#src/service/FileService'
 import { clearHistory } from '#src/exporter/DependencyDescriptor'
-import { closeConnection } from '#src/exporter/db'
+import { getDialect } from '#src/dialect/index'
 
 parentPort?.on('message', async (uuid: string) => {
   let dumpFilePath = ''
@@ -21,7 +17,7 @@ parentPort?.on('message', async (uuid: string) => {
     console.error(e)
     await errorHandler(uuid, dumpFilePath, e as Error)
   } finally {
-    await closeConnection()
+    await getDialect().closeConnection()
   }
 })
 
@@ -31,7 +27,9 @@ const buildDump = async (uuid: string, dumpFilePath: string) => {
   await createTableStatements(definition)
   await createDataStatements(definition)
 
-  await dumpStream.write('SET FOREIGN_KEY_CHECKS = 1;\n')
+  const dialect = getDialect()
+  const footer = await dialect.getFooterStatements(definition)
+  await dumpStream.write(footer)
   await dumpStream.close()
 
   parentPort?.postMessage({

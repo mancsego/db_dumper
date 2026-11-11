@@ -12,8 +12,18 @@ services:
     expose:
       - '3306'
     volumes:
-      - db-storage:/var/lib/mysql
       - ./.initdb:/docker-entrypoint-initdb.d
 
-volumes:
-  db-storage:
+  postgres:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_DB: ${TEST_DB:-db}
+      POSTGRES_USER: ${TEST_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-postgres}
+    ports:
+      - '5432:5432'
+    expose:
+      - '5432'
+    volumes:
+      - ./.initdb/postgres_test.sql:/docker-entrypoint-initdb.d/postgres_test.sql

@@ -9,9 +9,7 @@ const initDumpFile = (uuid: string = crypto.randomUUID()): string => {
     fs.mkdirSync(dumpsDir, { recursive: true })
   }
 
-  const dateStr = new Date()
-    .toLocaleDateString('de-DE')
-    .replace(/\./g, '_')
+  const dateStr = new Date().toLocaleDateString('de-DE').replace(/\./g, '_')
   const shortUuid = uuid.substring(0, 8)
 
   dumpFilePath = path.resolve(dumpsDir, `dump_${dateStr}_${shortUuid}.sql`)
