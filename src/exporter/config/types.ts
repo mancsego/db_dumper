@@ -16,7 +16,9 @@ type Where = {
 
 type Dependency = {
   table: string
-  column: string
+  column?: string
+  parentColumn?: string
+  foreignColumn?: string
 }
 
 type ConfigObject = {
@@ -32,4 +34,12 @@ type ColumnConfig = Record<string, CallableFunction>
 
 type ImportDefinition = Array<ConfigObject>
 
-export { ExportTypes, ConfigObject, ImportDefinition, ColumnConfig, Connector }
+export {
+  ExportTypes,
+  ConfigObject,
+  ImportDefinition,
+  ColumnConfig,
+  Connector,
+  Dependency,
+  Where
+}

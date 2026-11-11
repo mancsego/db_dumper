@@ -29,5 +29,7 @@ tmp/**/*
 .idea/**/*
 .vscode/**/*
 
+definition.ts
+
 # ignore additional files using core.excludesFile
 # https://git-scm.com/docs/gitignore

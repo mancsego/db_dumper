@@ -11,8 +11,10 @@ import {
   saveHistory
 } from '#src/exporter/DependencyDescriptor'
 
+const BATCH_SIZE = 500
+
 const createDataStatements = async (definition: ImportDefinition) => {
-  const dumb = dumpStream.open()
+  dumpStream.open()
   const { connection } = await getConnection()
 
   for (const config of definition) {
@@ -23,19 +25,34 @@ const createDataStatements = async (definition: ImportDefinition) => {
     saveHistory(config.table, query)
     const [rows] = await connection.query<RowDataPacket[]>(query)
 
-    dumb.write(_createInsert(config, rows))
-  }
+    if (!rows || rows.length === 0) continue
 
-  dumpStream.close()
+    await _writeBatchedInserts(config, rows)
+  }
 }
 
-const _createInsert = (config: ConfigObject, rows: RowDataPacket[]) =>
-  `INSERT INTO ${config.table} VALUES ${rows.reduce(_valueReducer, '').slice(0, -1)};  `
+const _writeBatchedInserts = async (
+  config: ConfigObject,
+  rows: RowDataPacket[]
+) => {
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const chunk = rows.slice(i, i + BATCH_SIZE)
+    const insertSql = _createInsertChunk(config, chunk)
+    await dumpStream.write(insertSql)
+  }
+  await dumpStream.write('\n')
+}
+
+const _createInsertChunk = (config: ConfigObject, rows: RowDataPacket[]) => {
+  const valuesStr = rows.reduce(_valueReducer, '').slice(0, -1)
+  return `INSERT INTO \`${config.table}\` VALUES ${valuesStr};\n`
+}
 
 const _valueReducer = (values: string, next: Record<string, unknown>) => {
   const row = Object.keys(next)
     .reduce((collected: string, column: string) => {
-      return `${collected}${next[column]}, `
+      const val = next[column]
+      return `${collected}${val}, `
     }, '')
     .slice(0, -2)
 
@@ -43,17 +60,26 @@ const _valueReducer = (values: string, next: Record<string, unknown>) => {
 }
 
 const _createJoin = (config: ConfigObject) => {
-  if (!config.dependencies) return ''
+  if (!config.dependencies || config.dependencies.length === 0) return ''
 
-  return config.dependencies.reduce(
-    (wherePart, { table, column }) =>
-      `${wherePart} ${getJoinForDependency(config.table, table, column)}`,
-    ' '
-  )
+  const joins = config.dependencies
+    .map((dep) => {
+      const parentCol = dep.parentColumn ?? dep.column ?? ''
+      const foreignCol = dep.foreignColumn ?? dep.column ?? parentCol
+      return getJoinForDependency(
+        config.table,
+        dep.table,
+        parentCol,
+        foreignCol
+      )
+    })
+    .filter((j) => Boolean(j && j.trim().length > 0))
+
+  return joins.length > 0 ? ` ${joins.join(' ')}` : ''
 }
 
 const _createQuery = (config: ConfigObject) => {
-  const from = ` FROM ${config.table}`
+  const from = ` FROM \`${config.table}\``
   const join = _createJoin(config)
   const where = _createWhere(config)
   const limit = _createLimit(config)
@@ -62,14 +88,14 @@ const _createQuery = (config: ConfigObject) => {
 }
 
 const _createLimit = (config: ConfigObject) =>
-  config.limit ? `LIMIT ${config.limit}` : ''
+  config.limit ? ` LIMIT ${config.limit}` : ''
 
 const _createWhere = (config: ConfigObject) => {
-  if (!config.where) return ' '
+  if (!config.where || config.where.length === 0) return ''
 
   return config.where.reduce(
     (where, { connector, condition }, i) =>
-      !i ? `${where}${condition} ` : `${where}${connector} ${condition} `,
+      !i ? `${where}${condition}` : `${where} ${connector} ${condition}`,
     ' WHERE '
   )
 }
